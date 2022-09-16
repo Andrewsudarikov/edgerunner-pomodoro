@@ -8,3 +8,4 @@
 	
 	* Share timer settings between GUI and CLI versions
 
+1. Refactor settings to use `YAML`
