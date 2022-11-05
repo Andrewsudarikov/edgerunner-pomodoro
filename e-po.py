@@ -25,6 +25,36 @@ class OperationsWindow(Gtk.Window):
         self.set_titlebar(self.HeaderBar)
         self.HeaderBar.show()
 
+        # Set up the HeaderBar controls:
+        
+        ## Configure the Start button:
+        self.btnStart = Gtk.Button()
+        icon = Gio.ThemedIcon(name = config.get('GUI-INTERFACE','btnStart_icon'))
+        image = Gtk.Image.new_from_gicon(icon, Gtk.IconSize.BUTTON)
+        image.show()
+        self.btnStart.add(image)
+        self.HeaderBar.pack_start(self.btnStart) 
+        self.btnStart.show()
+ 
+         ## Configure the Stop button:
+        self.btnStop = Gtk.Button()
+        icon = Gio.ThemedIcon(name = config.get('GUI-INTERFACE','btnStop_icon'))
+        image = Gtk.Image.new_from_gicon(icon, Gtk.IconSize.BUTTON)
+        image.show()
+        self.btnStop.add(image)
+        self.btnStop.set_sensitive(False)
+        self.HeaderBar.pack_start(self.btnStop) 
+        self.btnStop.show()
+        
+        ## Configure the Settigns button:
+        self.btnSettngs = Gtk.Button()
+        icon = Gio.ThemedIcon(name = config.get('GUI-INTERFACE','btnSettings_icon'))
+        image = Gtk.Image.new_from_gicon(icon, Gtk.IconSize.BUTTON)
+        image.show()
+        self.btnSettngs.add(image)
+        self.HeaderBar.pack_end(self.btnSettngs) 
+        self.btnSettngs.show()       
+
 window = OperationsWindow()
 window.connect("delete-event", Gtk.main_quit)
 window.show()
