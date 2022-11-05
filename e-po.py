@@ -3,7 +3,7 @@ import gi
 gi.require_version('Gtk', '3.0')
 from gi.repository import Gtk, Gdk, Gio, Pango
 
-# Declare ConfigParser, read the configuration file into memory
+# Declare ConfigParser, read the configuration file into memory:
 config = configparser.ConfigParser()
 config.read('e-po_config.ini')
 
@@ -18,7 +18,7 @@ class OperationsWindow(Gtk.Window):
         self.set_border_width(config.getint('GUI-INTERFACE', 'window_border_width'))
         self.set_resizable(config.getboolean('GUI-INTERFACE', 'window_resizable'))
 
-        # Set up the HeaderBar
+        # Set up the HeaderBar:
         self.HeaderBar = Gtk.HeaderBar()
         self.HeaderBar.set_show_close_button(True)
         self.HeaderBar.set_title(self.get_title())
