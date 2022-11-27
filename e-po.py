@@ -1,15 +1,31 @@
+from ast import If
 import configparser
 import gi
 gi.require_version('Gtk', '3.0')
-from gi.repository import Gtk, Gdk, Gio, Pango
+from gi.repository import Gtk, GObject, Gio, Pango
+import time
+import datetime
+import threading
 
 # Declare ConfigParser, read the configuration file into memory:
 config = configparser.ConfigParser()
 config.read('e-po_config.ini')
 
+global Period
+Period = config.getint('TIMER', 'focus-period')
+
+global PauseBuffer
+PauseBuffer = 0
+
 class OperationsWindow(Gtk.Window):
 
     def __init__(self):
+
+        global Period
+
+        # Set timer handles
+        self.timer = None
+        self.event = None
 
         Gtk.Window.__init__(self, title = config.get('GUI-INTERFACE', 'window_title'))
 
@@ -28,23 +44,34 @@ class OperationsWindow(Gtk.Window):
         # Set up the HeaderBar controls:
         
         ## Configure the Start button:
-        self.btn_start = Gtk.Button()
-        icon = Gio.ThemedIcon(name = config.get('GUI-INTERFACE','btn_start_icon'))
+        self.btnStart = Gtk.Button()
+        icon = Gio.ThemedIcon(name = config.get('GUI-INTERFACE','btnStart_icon'))
         image = Gtk.Image.new_from_gicon(icon, Gtk.IconSize.BUTTON)
         image.show()
-        self.btn_start.add(image)
-        self.HeaderBar.pack_start(self.btn_start) 
-        self.btn_start.show()
+        self.btnStart.add(image)
+        self.HeaderBar.pack_start(self.btnStart)
+        self.btnStart.connect("clicked", self.btnStart_clicked)
+        self.btnStart.show()
+        
+        #Configure the Pause button
+        self.btnPause = Gtk.Button()
+        icon = Gio.ThemedIcon(name = config.get('GUI-INTERFACE','btnPause_icon'))
+        image = Gtk.Image.new_from_gicon(icon, Gtk.IconSize.BUTTON)
+        image.show()
+        self.btnPause.add(image)
+        self.HeaderBar.pack_start(self.btnPause)
+        self.btnPause.connect("clicked", self.btnPause_clicked)
  
         ## Configure the Stop button:
-        self.btn_stop = Gtk.Button()
-        icon = Gio.ThemedIcon(name = config.get('GUI-INTERFACE','btn_stop_icon'))
+        self.btnStop = Gtk.Button()
+        icon = Gio.ThemedIcon(name = config.get('GUI-INTERFACE','btnStop_icon'))
         image = Gtk.Image.new_from_gicon(icon, Gtk.IconSize.BUTTON)
         image.show()
-        self.btn_stop.add(image)
-        self.btn_stop.set_sensitive(False)
-        self.HeaderBar.pack_start(self.btn_stop) 
-        self.btn_stop.show()
+        self.btnStop.add(image)
+        self.btnStop.set_sensitive(False)
+        self.HeaderBar.pack_start(self.btnStop)
+        self.btnStop.connect("clicked", self.btnStop_clicked)
+        self.btnStop.show()
         
         ## Configure the Settigns button:
         self.btn_settings = Gtk.Button()
@@ -65,7 +92,7 @@ class OperationsWindow(Gtk.Window):
         self.mainContainer.pack_start(self.timerContainer, True, True, 0)
         self.timerContainer.show()
         
-        self.lbl_Time = Gtk.Label(label = config.get('TIMER','focus-period-mins') + ":" + "00")
+        self.lbl_Time = Gtk.Label(label = str(Period // 60) + ":00")
         self.lbl_Time.set_use_markup(True)
         self.lbl_Time.modify_font(Pango.FontDescription(config.get('DISPLAY','timer_font_size')))
         self.timerContainer.pack_start(self.lbl_Time, True, True, 0)
@@ -86,7 +113,7 @@ class OperationsWindow(Gtk.Window):
         hbox = Gtk.Box(orientation=Gtk.Orientation.HORIZONTAL)
         row.add(hbox)
         period_name_1 = Gtk.Label(label = "Work & Focus time", xalign = 0)
-        period_time_1 = Gtk.Label(label = config.get('TIMER','focus-period-mins'))
+        period_time_1 = Gtk.Label(label = str(config.getint('TIMER','focus-period') // 60) + " min.")
         period_selector_1 = Gtk.Switch()
         period_selector_1.set_active(True)
         hbox.pack_start(period_name_1, True, True, 3)
@@ -98,7 +125,7 @@ class OperationsWindow(Gtk.Window):
         hbox = Gtk.Box(orientation=Gtk.Orientation.HORIZONTAL)
         row.add(hbox)
         period_name_2 = Gtk.Label(label = "Short break", xalign = 0)
-        period_time_2 = Gtk.Label(label = config.get('TIMER','break-period-mins'))
+        period_time_2 = Gtk.Label(label = str(config.getint('TIMER','break-period') // 60) + " min.")
         period_selector_2 = Gtk.Switch()
         period_selector_2.set_active(False)
         hbox.pack_start(period_name_2, True, True, 3)
@@ -110,7 +137,7 @@ class OperationsWindow(Gtk.Window):
         hbox = Gtk.Box(orientation=Gtk.Orientation.HORIZONTAL)
         row.add(hbox)
         period_name_3 = Gtk.Label(label = "Rest period", xalign = 0)
-        period_time_3 = Gtk.Label(label = config.get('TIMER','rest-period-mins'))
+        period_time_3 = Gtk.Label(label = str(config.getint('TIMER','rest-period') // 60) + " min.")
         period_selector_3 = Gtk.Switch()
         period_selector_3.set_active(False)
         hbox.pack_start(period_name_3, True, True, 3)
@@ -120,8 +147,72 @@ class OperationsWindow(Gtk.Window):
         
         self.mainContainer.pack_end(self.optionsContainer, False, True, 0)
         self.optionsContainer.show_all()
-        
 
+    def countdown(self):
+        
+        global Period
+        
+        while(Period):
+            
+            mins, secs = divmod(Period, 60)
+            timer = '{:02d}:{:02d}'.format(mins, secs)
+            self.lbl_Time.set_text(str(timer))
+            Period -= 1
+            time.sleep(1)
+            
+    def btnStart_clicked(self,btnStart):
+
+        global Period
+
+        if config.getboolean('TIMER', 'focus-period_select') == True and config.getboolean('TIMER', 'pause-trigger') == False:
+            Period = config. getint('TIMER', 'focus-period')
+        elif config.getboolean('TIMER', 'break-period_select') == True and config.getboolean('TIMER', 'pause-trigger') == False:
+            Period = config. getint('TIMER', 'break-period')
+        elif config.getboolean('TIMER', 'rest-period_select') == True and config.getboolean('TIMER', 'pause-trigger') == False:
+            Period = config. getint('TIMER', 'rest-period')
+        else:
+            Period = PauseBuffer + 1
+
+        print('start')
+        self.timer = threading.Thread(target=self.countdown)
+        self.event = threading.Event()
+        self.timer.daemon=True
+        self.timer.start()
+        
+        config.set('TIMER', 'pause-trigger', "False")
+        
+        self.btnStop.set_sensitive(True)
+        self.btnStart.hide()
+        self.btnPause.show()
+        
+    def btnPause_clicked(self,btnPause):
+        
+        global Period, PauseBuffer
+        
+        PauseBuffer = Period       
+        
+        print('pause; pausebuffer = ' + str(PauseBuffer))
+        Period = 0
+        config.set('TIMER', 'pause-trigger', "True")
+        
+        self.btnPause.hide()
+        self.btnStart.show()
+        
+    def btnStop_clicked(self,btnStop):
+        
+        global Period
+        
+        print('stop')
+        Period = 0
+        mins, secs = divmod(Period, 60)
+        timer = '{:02d}:{:02d}'.format(mins, secs)
+        self.lbl_Time.set_text(str(timer))
+        
+        config.set('TIMER', 'pause-trigger', "False")
+        
+        self.btnStop.set_sensitive(False)
+        
+        
 window = OperationsWindow()
 window.connect("delete-event", Gtk.main_quit)
 window.show()
