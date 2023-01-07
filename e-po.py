@@ -11,11 +11,26 @@ import threading
 config = configparser.ConfigParser()
 config.read('e-po_config.ini')
 
+
+# Declare global variables
+
+## The "Period" variable reads the config value for the first countdown period 
+## from the configuration file.
+
 global Period
 Period = config.getint('TIMER', 'focus-period')
 
+## The "PauseBuffer" variable will be used to store the remaining number of seconds 
+## in the current period after the Pause button is clicked.
+
 global PauseBuffer
 PauseBuffer = 0
+
+## The "StopDeliberate" variable will help detect if the end of the period was natural (the time has run out) 
+## or deliberate (the user clicked the Sopt button).
+
+global StopDeliberate
+StopDeliberate = False
 
 class OperationsWindow(Gtk.Window):
 
@@ -53,7 +68,7 @@ class OperationsWindow(Gtk.Window):
         self.btnStart.connect("clicked", self.btnStart_clicked)
         self.btnStart.show()
         
-        #Configure the Pause button
+        ## Configure the Pause button
         self.btnPause = Gtk.Button()
         icon = Gio.ThemedIcon(name = config.get('GUI-INTERFACE','btnPause_icon'))
         image = Gtk.Image.new_from_gicon(icon, Gtk.IconSize.BUTTON)
