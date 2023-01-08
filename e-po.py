@@ -4,7 +4,6 @@ import gi
 gi.require_version('Gtk', '3.0')
 from gi.repository import Gtk, GObject, Gio, Pango
 import time
-import datetime
 import threading
 
 # Declare ConfigParser, read the configuration file into memory:
@@ -20,6 +19,11 @@ config.read('e-po_config.ini')
 global Period
 Period = config.getint('TIMER', 'focus-period')
 
+## The "BreakNumber" variable shows how many short break periods are left before the long one.
+
+global BreakNumber
+BreakNumber = config.getint('TIMER','rests-before-break')
+
 ## The "PauseBuffer" variable will be used to store the remaining number of seconds 
 ## in the current period after the Pause button is clicked.
 
@@ -32,11 +36,13 @@ PauseBuffer = 0
 global StopDeliberate
 StopDeliberate = False
 
+
 class OperationsWindow(Gtk.Window):
+
 
     def __init__(self):
 
-        global Period
+        global Period, BreakNumber
 
         # Set timer handles
         self.timer = None
@@ -107,17 +113,20 @@ class OperationsWindow(Gtk.Window):
         self.mainContainer.pack_start(self.timerContainer, True, True, 0)
         self.timerContainer.show()
         
-        self.lbl_Time = Gtk.Label(label = str(Period // 60) + ":00")
+        mins, secs = divmod(Period, 60)
+        timer = '{:02d}:{:02d}'.format(mins, secs)
+        self.lbl_Time = Gtk.Label(label = str(timer))
+
         self.lbl_Time.set_use_markup(True)
         self.lbl_Time.modify_font(Pango.FontDescription(config.get('DISPLAY','timer_font_size')))
         self.timerContainer.pack_start(self.lbl_Time, True, True, 0)
         self.lbl_Time.show()
         
         self.periodCounter = Gtk.Box(orientation = Gtk.Orientation.HORIZONTAL)
-        lbl_counter_legend = Gtk.Label(label = "Periods until big break:", xalign = 0)
-        lbl_counter_number = Gtk.Label(label = config.get('TIMER','rests-before-break'))
-        self.periodCounter.pack_start(lbl_counter_legend, False, True, 3)
-        self.periodCounter.pack_end(lbl_counter_number, False, True, 3)
+        self.lbl_counter_legend = Gtk.Label(label = "Periods until big break:", xalign = 0)
+        self.lbl_counter_number = Gtk.Label(label = str(BreakNumber))
+        self.periodCounter.pack_start(self.lbl_counter_legend, False, True, 3)
+        self.periodCounter.pack_end(self.lbl_counter_number, False, True, 3)
         self.mainContainer.pack_start(self.periodCounter, False, True, 10)
         self.periodCounter.show_all()
         
@@ -127,37 +136,37 @@ class OperationsWindow(Gtk.Window):
         row = Gtk.ListBoxRow()
         hbox = Gtk.Box(orientation=Gtk.Orientation.HORIZONTAL)
         row.add(hbox)
-        period_name_1 = Gtk.Label(label = "Work & Focus time", xalign = 0)
-        period_time_1 = Gtk.Label(label = str(config.getint('TIMER','focus-period') // 60) + " min.")
-        period_selector_1 = Gtk.Switch()
-        period_selector_1.set_active(True)
-        hbox.pack_start(period_name_1, True, True, 3)
-        hbox.pack_start(period_time_1, False, True, 15)
-        hbox.pack_end(period_selector_1, False, True, 3)
+        self.period_name_1 = Gtk.Label(label = "Work & Focus time", xalign = 0)
+        self.period_time_1 = Gtk.Label(label = str(config.getint('TIMER','focus-period') // 60) + " min.")
+        self.period_selector_1 = Gtk.Switch()
+        self.period_selector_1.set_active(True)
+        hbox.pack_start(self.period_name_1, True, True, 3)
+        hbox.pack_start(self.period_time_1, False, True, 15)
+        hbox.pack_end(self.period_selector_1, False, True, 3)
         self.optionsContainer.add(row)
     
         row = Gtk.ListBoxRow()
         hbox = Gtk.Box(orientation=Gtk.Orientation.HORIZONTAL)
         row.add(hbox)
-        period_name_2 = Gtk.Label(label = "Short break", xalign = 0)
-        period_time_2 = Gtk.Label(label = str(config.getint('TIMER','break-period') // 60) + " min.")
-        period_selector_2 = Gtk.Switch()
-        period_selector_2.set_active(False)
-        hbox.pack_start(period_name_2, True, True, 3)
-        hbox.pack_start(period_time_2, False, True, 15)
-        hbox.pack_end(period_selector_2, False, True, 3)
+        self.period_name_2 = Gtk.Label(label = "Short break", xalign = 0)
+        self.period_time_2 = Gtk.Label(label = str(config.getint('TIMER','break-period') // 60) + " min.")
+        self.period_selector_2 = Gtk.Switch()
+        self.period_selector_2.set_active(False)
+        hbox.pack_start(self.period_name_2, True, True, 3)
+        hbox.pack_start(self.period_time_2, False, True, 15)
+        hbox.pack_end(self.period_selector_2, False, True, 3)
         self.optionsContainer.add(row)
 
         row = Gtk.ListBoxRow()
         hbox = Gtk.Box(orientation=Gtk.Orientation.HORIZONTAL)
         row.add(hbox)
-        period_name_3 = Gtk.Label(label = "Rest period", xalign = 0)
-        period_time_3 = Gtk.Label(label = str(config.getint('TIMER','rest-period') // 60) + " min.")
-        period_selector_3 = Gtk.Switch()
-        period_selector_3.set_active(False)
-        hbox.pack_start(period_name_3, True, True, 3)
-        hbox.pack_start(period_time_3, False, True, 15)
-        hbox.pack_end(period_selector_3, False, True, 3)
+        self.period_name_3 = Gtk.Label(label = "Rest period", xalign = 0)
+        self.period_time_3 = Gtk.Label(label = str(config.getint('TIMER','rest-period') // 60) + " min.")
+        self.period_selector_3 = Gtk.Switch()
+        self.period_selector_3.set_active(False)
+        hbox.pack_start(self.period_name_3, True, True, 3)
+        hbox.pack_start(self.period_time_3, False, True, 15)
+        hbox.pack_end(self.period_selector_3, False, True, 3)
         self.optionsContainer.add(row)
         
         self.mainContainer.pack_end(self.optionsContainer, False, True, 0)
@@ -165,7 +174,7 @@ class OperationsWindow(Gtk.Window):
 
     def countdown(self):
         
-        global Period
+        global Period, StopDeliberate, BreakNumber
         
         while(Period):
             
@@ -173,22 +182,99 @@ class OperationsWindow(Gtk.Window):
             timer = '{:02d}:{:02d}'.format(mins, secs)
             self.lbl_Time.set_text(str(timer))
             Period -= 1
+            StopDeliberate = False
             time.sleep(1)
-            
+
+        else:
+
+            if StopDeliberate == False:
+
+                if config.getboolean('TIMER', 'focus-period_select') == True:
+
+                    if BreakNumber > 1:
+
+                        config.set('TIMER', 'focus-period_select', 'False')
+                        self.period_selector_1.set_active(False)
+
+                        config.set('TIMER', 'break-period_select', 'True')
+                        self.period_selector_2.set_active(True)
+
+                        config.set('TIMER', 'rest-period_select', 'False')
+                        self.period_selector_3.set_active(False)
+
+                        BreakNumber -= 1
+                        self.lbl_counter_number.set_text(str(BreakNumber))
+                        print('Short breaks left before long one: ' + str(BreakNumber))
+
+                        Period = config.getint('TIMER', 'break-period')
+
+                        print('Automatic timer sequence start: short pause.')
+
+                    if BreakNumber == 1:
+
+                        config.set('TIMER', 'focus-period_select', 'False')
+                        self.period_selector_1.set_active(False)
+
+                        config.set('TIMER', 'break-period_select', 'True')
+                        self.period_selector_2.set_active(True)
+
+                        config.set('TIMER', 'rest-period_select', 'False')
+                        self.period_selector_3.set_active(False)                        
+
+                        BreakNumber -= 1
+                        self.lbl_counter_number.set_text("Rest period next")
+                        print('Short breaks left before long one: ' + str(BreakNumber))                    
+
+                    self.timer = threading.Thread(target=self.countdown)
+                    self.event = threading.Event()
+                    self.timer.daemon=True
+                    self.timer.start()
+
+                #if config.getboolean('TIMER', 'break-period_select') == True and config.getboolean('TIMER', 'focus-period_select',) == False:
+
+                    #config.set('TIMER', 'focus-period_select', 'True')
+                    #self.period_selector_1.set_active(True)
+
+                    #config.set('TIMER', 'break-period_select', 'False')
+                    #self.period_selector_2.set_active(False)
+
+                    #config.set('TIMER', 'rest-period_select', 'False')
+                    #self.period_selector_3.set_active(False)
+
+                    #Period = config.getint('TIMER', 'focus-period')
+
+                    #print('Automatic timer sequence start: focus period.')  
+
+                    #self.timer = threading.Thread(target=self.countdown)
+                    #self.event = threading.Event()
+                    #self.timer.daemon=True
+                    #self.timer.start()
+
+            with open('e-po_config.ini', 'w') as ConfigFile:
+                config.write(ConfigFile)
+
+
     def btnStart_clicked(self,btnStart):
 
         global Period
 
         if config.getboolean('TIMER', 'focus-period_select') == True and config.getboolean('TIMER', 'pause-trigger') == False:
-            Period = config. getint('TIMER', 'focus-period')
+            Period = config.getint('TIMER', 'focus-period')
+
         elif config.getboolean('TIMER', 'break-period_select') == True and config.getboolean('TIMER', 'pause-trigger') == False:
-            Period = config. getint('TIMER', 'break-period')
+            Period = config.getint('TIMER', 'break-period')
+
         elif config.getboolean('TIMER', 'rest-period_select') == True and config.getboolean('TIMER', 'pause-trigger') == False:
-            Period = config. getint('TIMER', 'rest-period')
+            Period = config.getint('TIMER', 'rest-period')
+
         else:
             Period = PauseBuffer + 1
 
-        print('start')
+        if config.getboolean('TIMER', 'pause-trigger') == False:
+            print('start')
+        else:
+            print('restart after pause')
+
         self.timer = threading.Thread(target=self.countdown)
         self.event = threading.Event()
         self.timer.daemon=True
@@ -199,10 +285,11 @@ class OperationsWindow(Gtk.Window):
         self.btnStop.set_sensitive(True)
         self.btnStart.hide()
         self.btnPause.show()
-        
+
+
     def btnPause_clicked(self,btnPause):
         
-        global Period, PauseBuffer
+        global Period, PauseBuffer, StopDeliberate
         
         PauseBuffer = Period       
         
@@ -210,12 +297,15 @@ class OperationsWindow(Gtk.Window):
         Period = 0
         config.set('TIMER', 'pause-trigger', "True")
         
+        StopDeliberate = True
+
         self.btnPause.hide()
         self.btnStart.show()
-        
+
+
     def btnStop_clicked(self,btnStop):
         
-        global Period
+        global Period, StopDeliberate
         
         print('stop')
         Period = 0
@@ -224,7 +314,23 @@ class OperationsWindow(Gtk.Window):
         self.lbl_Time.set_text(str(timer))
         
         config.set('TIMER', 'pause-trigger', "False")
+
+        config.set('TIMER', 'focus-period_select', 'True')
+        self.period_selector_1.set_active(True)
+
+        config.set('TIMER', 'break-period_select', 'False')
+        self.period_selector_2.set_active(False)
+
+        config.set('TIMER', 'rest-period_select', 'False')
+        self.period_selector_3.set_active(False)
+
+        config.set('TIMER','rests-before-break', '4')
+
+        with open('e-po_config.ini', 'w') as ConfigFile:
+            config.write(ConfigFile)
         
+        StopDeliberate = True
+
         self.btnStop.set_sensitive(False)
         
         
