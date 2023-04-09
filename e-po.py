@@ -1,11 +1,11 @@
-from ast import If
 import configparser
-import gi
-gi.require_version('Gtk', '3.0')
-from gi.repository import Gtk, GObject, Gio, Pango
 import time
 import datetime
 import threading
+import gi
+gi.require_version('Gtk', '3.0')
+
+from gi.repository import Gtk, GObject, Gio, Pango
 
 # Declare ConfigParser, read the configuration file into memory:
 config = configparser.ConfigParser()
@@ -14,20 +14,19 @@ config.read('e-po_config.ini')
 
 # Declare global variables
 
-## The "Period" variable reads the config value for the first countdown period 
-## from the configuration file.
+## The "Period" variable reads the config value for the first countdown period from the configuration file.
 
 global Period
 Period = config.getint('TIMER', 'focus-period')
 
-## The "PauseBuffer" variable will be used to store the remaining number of seconds 
-## in the current period after the Pause button is clicked.
+## The "PauseBuffer" variable is used to store the remaining number of seconds in the current period
+## after the Pause button is clicked.
 
 global PauseBuffer
 PauseBuffer = 0
 
-## The "StopDeliberate" variable will help detect if the end of the period was natural (the time has run out) 
-## or deliberate (the user clicked the Sopt button).
+## The "StopDeliberate" variable helps detect if the end of the period was natural (the time has run out) 
+## or deliberate (the user clicked the Stop button).
 
 global StopDeliberate
 StopDeliberate = False
@@ -45,7 +44,10 @@ class OperationsWindow(Gtk.Window):
         Gtk.Window.__init__(self, title = config.get('GUI-INTERFACE', 'window_title'))
 
         # Read the parameters from config and set the form properties:
-        self.set_default_size(config.getint('GUI-INTERFACE','window_width'), config.getint('GUI-INTERFACE', 'window_height'))
+        self.set_default_size(
+            config.getint('GUI-INTERFACE','window_width'), 
+            config.getint('GUI-INTERFACE', 'window_height')
+        )
         self.set_border_width(config.getint('GUI-INTERFACE', 'window_border_width'))
         self.set_resizable(config.getboolean('GUI-INTERFACE', 'window_resizable'))
 
