@@ -97,7 +97,16 @@ class OperationsWindow(Gtk.Window):
         image.show()
         self.btn_settings.add(image)
         self.HeaderBar.pack_end(self.btn_settings) 
+        self.btn_settings.connect("clicked", self.btnSettings_clicked)
         self.btn_settings.show()       
+
+        ## Configure the settings popover:
+        self.Settings_Popover = Gtk.Popover()
+        self.Settings_Popover.set_position(Gtk.PositionType.BOTTOM)
+        self.Settings_Popover.set_size_request(20,40)
+        self.Settings_Popover.set_border_width(5)
+        self.Settings_Container = Gtk.Box(orientation=Gtk.Orientation.VERTICAL)
+        self.Settings_Popover.add(self.Settings_Container)
 
         ## Add main OperationsWindow container and controls
         
@@ -228,7 +237,12 @@ class OperationsWindow(Gtk.Window):
         config.set('TIMER', 'pause-trigger', "False")
         
         self.btnStop.set_sensitive(False)
-        
+
+    def btnSettings_clicked(self, btnSettings):
+
+        self.Settings_Popover.set_relative_to(btnSettings)
+        self.Settings_Popover.show_all()
+        self.Settings_Popover.popup()
         
 window = OperationsWindow()
 window.connect("delete-event", Gtk.main_quit)
